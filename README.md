@@ -32,11 +32,11 @@ Load the `UACBypassCMSTPLUA.cna` script using the Cobalt Strike Script Manager. 
 
     $ uac_bypass_cmstplua
 
-## Limitations
+## Warning
 
-* The BOF spawns a new process (in which UAC is bypassed).
-* The BOF does not read the output of the spawned process.
-* The UAC bypass is not allowed on the beacon itself.
+* This BOF spawns a new process (in which UAC is bypassed).
+* This BOF does not read the output of the spawned process.
+* This BOF does not bypass UAC on the beacon process itself.
 
 ## Issues
 

